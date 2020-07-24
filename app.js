@@ -1,16 +1,33 @@
-require("dotenv").config();
-
 const Telegraf = require("telegraf");
-const { session } = Telegraf;
+const config = require("./config");
 
-const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
+const { Extra, Markup, Stage, session } = Telegraf;
+
+const bot = new Telegraf(config.token);
+const SceneGenerator = require("./Scenes");
+
+const createScene = new SceneGenerator();
+const magicBall = createScene.MagicBall();
 
 bot.use(Telegraf.log());
-bot.use(session());
+const stage = new Stage([magicBall]);
 
-bot.start((ctx) => ctx.reply("Hey dawg! Send me a sticker!"));
-bot.help((ctx) => ctx.reply("Send me a sticker"));
-bot.on("sticker", (ctx) => ctx.reply(`${ctx.message.from.username} 👍`));
-bot.hears("hi", (ctx) => ctx.reply("Hey there"));
+bot.use(session());
+bot.use(stage.middleware());
+
+const keyboard = Markup.inlineKeyboard([
+  Markup.callbackButton("Play Magic Ball Game", "ball"),
+]);
+
+bot.start((ctx) =>
+  ctx.reply(`👋 Привет ${ctx.message.from.username}! `, Extra.markup(keyboard))
+);
+bot.on("sticker", (ctx) =>
+  ctx.reply(`${ctx.message.from.username} 👍`, Extra.markup(keyboard))
+);
+
+bot.action("ball", async (ctx) => {
+  ctx.scene.enter("ball");
+});
 
 bot.launch();
